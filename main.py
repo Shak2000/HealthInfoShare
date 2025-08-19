@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
 
+
 class Database:
     def __init__(self):
         self.columns = {
@@ -22,6 +23,7 @@ class Database:
             'fever': 'bool'
         }
         self.df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self.columns.items()})
+        pd.set_option('display.max_columns', None)
 
     def add_record(self):
         record = {}
@@ -87,6 +89,7 @@ class Database:
         else:
             print("Deletion cancelled.")
 
+
 def main():
     db = Database()
     while True:
@@ -110,6 +113,7 @@ def main():
             break
         else:
             print("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     main()
