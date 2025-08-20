@@ -1,9 +1,16 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Database:
+    """
+    A class to manage a database of patient symptom records using a pandas DataFrame.
+    """
+
     def __init__(self):
+        """
+        Initializes the Database with a predefined schema for patient records.
+        """
         self.columns = {
             'name': 'object',
             'date': 'datetime64[ns]',
@@ -22,13 +29,18 @@ class Database:
             'diarrhea': 'bool',
             'fever': 'bool'
         }
+        # Initialize an empty DataFrame with the specified columns and data types
         self.df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self.columns.items()})
+        # Set an option to display all columns when printing the DataFrame
         pd.set_option('display.max_columns', None)
 
     def add_record(self):
+        """
+        Prompts the user to add a new symptom record, including a choice for the date.
+        """
         record = {}
 
-        # Name
+        # Get patient name
         while True:
             name = input("Enter name (string): ")
             if name:
@@ -37,10 +49,20 @@ class Database:
             else:
                 print("Name cannot be empty.")
 
-        # Date
-        record['date'] = datetime.now()
+        # Get date/time information
+        while True:
+            date_choice = input("Would you like to use the current datetime (1) or a custom datetime (2)? ")
+            if date_choice == '1':
+                record['date'] = datetime.now()
+                print("Using current datetime.")
+                break
+            elif date_choice == '2':
+                if self.get_custom_datetime(record):
+                    break
+            else:
+                print("Invalid choice. Please enter '1' or '2'.")
 
-        # Boolean symptoms
+        # Get boolean symptoms
         for col in self.columns:
             if self.columns[col] == 'bool':
                 while True:
@@ -51,11 +73,48 @@ class Database:
                     else:
                         print("Invalid input. Please enter 'y' or 'n'.")
 
+        # Add the new record to the DataFrame
         new_record_df = pd.DataFrame([record])
         self.df = pd.concat([self.df, new_record_df], ignore_index=True)
         print("Record added successfully.")
 
+    def get_custom_datetime(self, record):
+        """
+        Prompts the user for a custom datetime and validates the input.
+
+        Args:
+            record (dict): The dictionary to store the custom datetime.
+
+        Returns:
+            bool: True if a valid custom datetime was entered, False otherwise.
+        """
+        try:
+            year = int(input("Enter year (YYYY): "))
+            month = int(input("Enter month (1-12): "))
+            day = int(input("Enter day (1-31): "))
+            hour = int(input("Enter hour (0-23): "))
+            minute = int(input("Enter minute (0-59): "))
+            second = int(input("Enter second (0-59): "))
+
+            # Use datetime to validate the components
+            custom_date = datetime(year, month, day, hour, minute, second)
+
+            # Check if the custom date is in the future
+            if custom_date > datetime.now() + timedelta(minutes=1):  # Add a small buffer
+                print("Invalid date. Cannot enter a future date.")
+                return False
+
+            record['date'] = custom_date
+            print("Using custom datetime.")
+            return True
+        except ValueError as e:
+            print(f"Invalid datetime component: {e}. Please enter valid numbers.")
+            return False
+
     def remove_record(self):
+        """
+        Removes a record from the database based on its index.
+        """
         if self.df.empty:
             print("No records to remove.")
             return
@@ -72,12 +131,18 @@ class Database:
             print("Invalid input. Please enter an integer.")
 
     def view_records(self):
+        """
+        Displays all records currently in the database.
+        """
         if self.df.empty:
             print("No records to display.")
         else:
             print(self.df)
 
     def delete_all_records(self):
+        """
+        Deletes all records from the database after a confirmation prompt.
+        """
         if self.df.empty:
             print("No records to delete.")
             return
@@ -91,6 +156,9 @@ class Database:
 
 
 def main():
+    """
+    Main function to run the symptom tracker program.
+    """
     db = Database()
     while True:
         print("\nHealthcare Symptom Tracker")
