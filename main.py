@@ -29,6 +29,9 @@ class Database:
             'diarrhea': 'bool',
             'fever': 'bool'
         }
+        # Opt-in to the future pandas behavior to resolve the FutureWarning
+        pd.set_option('future.no_silent_downcasting', True)
+
         # Initialize an empty DataFrame with the specified columns and data types
         self.df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self.columns.items()})
         # Set an option to display all columns when printing the DataFrame
@@ -36,7 +39,7 @@ class Database:
 
     def add_record(self):
         """
-        Prompts the user to add a new symptom record, including a choice for the date.
+        Prompts the user to add a new symptom record, including a choice for the date and custom hazards.
         """
         record = {}
 
@@ -62,7 +65,12 @@ class Database:
             else:
                 print("Invalid choice. Please enter '1' or '2'.")
 
-        # Get boolean symptoms
+        # Initialize record with all current boolean columns set to False
+        for col in self.columns:
+            if self.columns[col] == 'bool':
+                record[col] = False
+
+        # Get fixed boolean symptoms
         for col in self.columns:
             if self.columns[col] == 'bool':
                 while True:
@@ -73,9 +81,27 @@ class Database:
                     else:
                         print("Invalid input. Please enter 'y' or 'n'.")
 
-        # Add the new record to the DataFrame
+        # Get dynamic hazards
+        print("\nEnter any hazards the patient has been exposed to (type 'done' when finished):")
+        while True:
+            hazard = input("Hazard: ").strip().lower()
+            if hazard == 'done':
+                break
+            if hazard:
+                # Add the hazard as a key to the record and set to True
+                record[hazard] = True
+                print(f"Added hazard: {hazard}")
+
+        # Create a new DataFrame from the single record
         new_record_df = pd.DataFrame([record])
-        self.df = pd.concat([self.df, new_record_df], ignore_index=True)
+
+        # Concatenate the new record with the existing DataFrame.
+        # This handles new columns automatically, filling with NaN for previous rows.
+        self.df = pd.concat([self.df, new_record_df], ignore_index=True, sort=False)
+
+        # Fill any NaN values (for new columns in old rows) with False
+        self.df = self.df.fillna(False)
+
         print("Record added successfully.")
 
     def get_custom_datetime(self, record):
@@ -149,6 +175,7 @@ class Database:
 
         confirm = input("Are you sure you want to delete all records? (y/n): ").lower()
         if confirm == 'y':
+            # Reset the DataFrame to its initial empty state
             self.df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self.columns.items()})
             print("All records have been deleted.")
         else:
