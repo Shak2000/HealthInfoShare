@@ -11,23 +11,10 @@ class Database:
         """
         Initializes the Database with a predefined schema for patient records.
         """
+        # The core columns that will always be present
         self.columns = {
             'name': 'object',
             'date': 'datetime64[ns]',
-            'headache': 'bool',
-            'back pain': 'bool',
-            'abdominal pain': 'bool',
-            'muscle aches': 'bool',
-            'cough': 'bool',
-            'sore throat': 'bool',
-            'nasal congestion': 'bool',
-            'runny nose': 'bool',
-            'shortness of breath': 'bool',
-            'fatigue': 'bool',
-            'nausea': 'bool',
-            'vomiting': 'bool',
-            'diarrhea': 'bool',
-            'fever': 'bool'
         }
         # Opt-in to the future pandas behavior to resolve the FutureWarning
         pd.set_option('future.no_silent_downcasting', True)
@@ -39,7 +26,7 @@ class Database:
 
     def add_record(self):
         """
-        Prompts the user to add a new symptom record, including a choice for the date and custom hazards.
+        Prompts the user to add a new symptom record, including a choice for the date, custom symptoms, and hazards.
         """
         record = {}
 
@@ -65,21 +52,16 @@ class Database:
             else:
                 print("Invalid choice. Please enter '1' or '2'.")
 
-        # Initialize record with all current boolean columns set to False
-        for col in self.columns:
-            if self.columns[col] == 'bool':
-                record[col] = False
-
-        # Get fixed boolean symptoms
-        for col in self.columns:
-            if self.columns[col] == 'bool':
-                while True:
-                    val = input(f"Is the patient experiencing {col}? (y/n): ").lower()
-                    if val in ['y', 'n']:
-                        record[col] = (val == 'y')
-                        break
-                    else:
-                        print("Invalid input. Please enter 'y' or 'n'.")
+        # Get dynamic symptoms
+        print("\nEnter any symptoms the patient is experiencing (type 'done' when finished):")
+        while True:
+            symptom = input("Symptom: ").strip().lower()
+            if symptom == 'done':
+                break
+            if symptom:
+                # Add the symptom as a key to the record and set to True
+                record[symptom] = True
+                print(f"Added symptom: {symptom}")
 
         # Get dynamic hazards
         print("\nEnter any hazards the patient has been exposed to (type 'done' when finished):")
@@ -175,7 +157,7 @@ class Database:
 
         confirm = input("Are you sure you want to delete all records? (y/n): ").lower()
         if confirm == 'y':
-            # Reset the DataFrame to its initial empty state
+            # Reset the DataFrame to its initial empty state with only the base columns
             self.df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self.columns.items()})
             print("All records have been deleted.")
         else:
