@@ -1,11 +1,9 @@
 import json
-from flask import Flask, request, jsonify, send_from_directory
-from datetime import datetime, timedelta
 import pandas as pd
-
-# This is a critical line to prevent browser errors during development
-# It allows requests from different origins (like your browser)
-from flask_cors import CORS
+from datetime import datetime, timedelta
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 
 # The main logic from your original program, now self-contained
@@ -94,73 +92,64 @@ class Database:
         return "All records have been deleted."
 
 
-# Initialize the Flask application and the database
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Initialize the FastAPI application and the database
+app = FastAPI()
 db = Database()
 
 
 # --- API Endpoints ---
-@app.route('/')
-def index():
-    return send_from_directory('.', 'index.html')
 
-
-@app.route('/<path:path>')
-def serve_static(path):
-    return send_from_directory('.', path)
-
-
-@app.route('/api/records', methods=['GET'])
-def get_records():
+@app.get("/api/records")
+async def get_records_endpoint():
     """Endpoint to get all records."""
-    records = db.get_records()
-    return records, 200
+    records_json = db.get_records()
+    return JSONResponse(content=json.loads(records_json))
 
 
-@app.route('/api/add_record', methods=['POST'])
-def add_record():
+@app.post("/api/add_record")
+async def add_record_endpoint(request: Request):
     """Endpoint to add a new record."""
-    data = request.json
+    data = await request.json()
     name = data.get('name')
     date_str = data.get('date')
     symptoms = data.get('symptoms', [])
     hazards = data.get('hazards', [])
 
     if not name or not date_str:
-        return jsonify({'error': 'Name and date are required.'}), 400
+        return JSONResponse(content={"error": "Name and date are required."}, status_code=400)
 
     try:
-        record_date = datetime.fromisoformat(date_str)
+        record_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
         if record_date > datetime.now() + timedelta(minutes=1):
-            return jsonify({'error': 'Cannot enter a future date.'}), 400
+            return JSONResponse(content={"error": "Cannot enter a future date."}, status_code=400)
     except ValueError:
-        return jsonify({'error': 'Invalid date format.'}), 400
+        return JSONResponse(content={"error": "Invalid date format."}, status_code=400)
 
     db.add_record(name, record_date, symptoms, hazards)
-    return jsonify({'message': 'Record added successfully.'}), 201
+    return JSONResponse(content={"message": "Record added successfully."}, status_code=201)
 
 
-@app.route('/api/remove_record', methods=['POST'])
-def remove_record():
+@app.post("/api/remove_record")
+async def remove_record_endpoint(request: Request):
     """Endpoint to remove a record."""
-    data = request.json
+    data = await request.json()
     idx = data.get('index')
 
     if idx is None:
-        return jsonify({'error': 'Index is required.'}), 400
+        return JSONResponse(content={"error": "Index is required."}, status_code=400)
 
     message = db.remove_record(idx)
-    return jsonify({'message': message}), 200
+    return JSONResponse(content={"message": message}, status_code=200)
 
 
-@app.route('/api/delete_all_records', methods=['POST'])
-def delete_all_records():
+@app.post("/api/delete_all_records")
+async def delete_all_records_endpoint():
     """Endpoint to delete all records."""
     message = db.delete_all_records()
-    return jsonify({'message': message}), 200
+    return JSONResponse(content={"message": message}, status_code=200)
 
 
-if __name__ == '__main__':
-    # Flask will now serve the HTML, CSS, and JS files from the same directory
-    app.run(debug=True)
+# Mount the static files directory to serve the frontend
+# IMPORTANT: This must come AFTER the API endpoints to avoid them being
+# treated as static files.
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
