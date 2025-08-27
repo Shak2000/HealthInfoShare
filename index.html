@@ -3,89 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Symptom and Hazard Tracker</title>
+    <title>Symptom & Hazard Tracker</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="script.js" defer></script>
 </head>
-<body class="bg-gray-100 font-inter text-gray-800">
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
-    <div class="container mx-auto p-6 lg:p-12">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-blue-600">Symptom and Hazard Tracker</h1>
-            <p class="text-lg mt-2 text-gray-600">Enter patient information, symptoms, and potential hazards.</p>
-        </header>
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Symptom & Hazard Tracker</h1>
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Input Form Section -->
-            <section class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Add New Record</h2>
-                <form id="addRecordForm" class="space-y-4">
-                    <div>
-                        <label for="patientName" class="block text-sm font-medium text-gray-700">Patient Name</label>
-                        <input type="text" id="patientName" name="patientName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition ease-in-out duration-150">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Datetime</label>
-                        <div class="flex items-center space-x-4 mt-1">
-                            <input type="radio" id="currentDate" name="dateOption" value="current" checked>
-                            <label for="currentDate" class="text-sm font-medium text-gray-700">Current</label>
-                            <input type="radio" id="customDate" name="dateOption" value="custom">
-                            <label for="customDate" class="text-sm font-medium text-gray-700">Custom</label>
-                        </div>
-                    </div>
-                    <div id="customDateFields" class="hidden space-y-2">
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="number" id="year" placeholder="Year" class="rounded-md border-gray-300 shadow-sm">
-                            <input type="number" id="month" placeholder="Month" class="rounded-md border-gray-300 shadow-sm">
-                            <input type="number" id="day" placeholder="Day" class="rounded-md border-gray-300 shadow-sm">
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="number" id="hour" placeholder="Hour" class="rounded-md border-gray-300 shadow-sm">
-                            <input type="number" id="minute" placeholder="Minute" class="rounded-md border-gray-300 shadow-sm">
-                            <input type="number" id="second" placeholder="Second" class="rounded-md border-gray-300 shadow-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label for="symptoms" class="block text-sm font-medium text-gray-700">Symptoms (comma-separated)</label>
-                        <input type="text" id="symptoms" name="symptoms" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition ease-in-out duration-150" placeholder="e.g., cough, fever, sore throat">
-                    </div>
-                    <div>
-                        <label for="hazards" class="block text-sm font-medium text-gray-700">Hazards (comma-separated)</label>
-                        <input type="text" id="hazards" name="hazards" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition ease-in-out duration-150" placeholder="e.g., flu season, new pet">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">Add Record</button>
-                </form>
-            </section>
-
-            <!-- Data Display and Actions Section -->
-            <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-semibold text-gray-700">All Records</h2>
-                    <div class="space-x-2">
-                        <button id="viewRecordsBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-400 transition ease-in-out duration-150">View Records</button>
-                        <button id="deleteAllBtn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">Delete All</button>
-                    </div>
+        <!-- Add Record Section -->
+        <div id="add-record-card" class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Add New Record</h2>
+            <form id="add-record-form">
+                <div class="mb-4">
+                    <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Patient Name:</label>
+                    <input type="text" id="name" name="name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
                 </div>
-                <div class="overflow-x-auto">
-                    <table id="recordsTable" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Index</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recordsTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- Records will be dynamically inserted here -->
-                        </tbody>
-                    </table>
+
+                <div class="mb-4">
+                    <label for="date-type" class="block text-gray-700 text-sm font-bold mb-2">Record Date:</label>
+                    <select id="date-type" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="current">Current Date & Time</option>
+                        <option value="custom">Custom Date & Time</option>
+                    </select>
                 </div>
-                <div id="statusMessage" class="mt-4 text-center text-sm font-medium"></div>
-            </section>
-        </main>
+
+                <div id="custom-date-fields" class="mb-4 hidden">
+                    <label for="custom-date" class="block text-gray-700 text-sm font-bold mb-2">Custom Date & Time:</label>
+                    <input type="datetime-local" id="custom-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <div class="mb-4">
+                    <label for="symptoms" class="block text-gray-700 text-sm font-bold mb-2">Symptoms (comma-separated):</label>
+                    <input type="text" id="symptoms" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <div class="mb-6">
+                    <label for="hazards" class="block text-gray-700 text-sm font-bold mb-2">Hazards (comma-separated):</label>
+                    <input type="text" id="hazards" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Add Record</button>
+                    <span id="add-status" class="text-sm text-green-600 hidden">Record added!</span>
+                </div>
+            </form>
+        </div>
+
+        <!-- Manage Records Section -->
+        <div id="manage-records-card" class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Manage Records</h2>
+            <div class="flex space-x-4 mb-4">
+                <button id="view-records" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">View All Records</button>
+                <button id="delete-all-records" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Delete All Records</button>
+            </div>
+
+            <div id="records-container" class="mt-4">
+                <p class="text-gray-500" id="records-placeholder">Click 'View All Records' to see the database content.</p>
+                <div id="records-table-container" class="overflow-x-auto">
+                    <!-- Records will be displayed here as a table -->
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>

@@ -1,232 +1,177 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const addRecordForm = document.getElementById('addRecordForm');
-    const patientNameInput = document.getElementById('patientName');
-    const symptomsInput = document.getElementById('symptoms');
-    const hazardsInput = document.getElementById('hazards');
-    const recordsTableBody = document.getElementById('recordsTableBody');
-    const viewRecordsBtn = document.getElementById('viewRecordsBtn');
-    const deleteAllBtn = document.getElementById('deleteAllBtn');
-    const statusMessage = document.getElementById('statusMessage');
-    const dateOptionRadios = document.querySelectorAll('input[name="dateOption"]');
-    const customDateFields = document.getElementById('customDateFields');
-    const yearInput = document.getElementById('year');
-    const monthInput = document.getElementById('month');
-    const dayInput = document.getElementById('day');
-    const hourInput = document.getElementById('hour');
-    const minuteInput = document.getElementById('minute');
-    const secondInput = document.getElementById('second');
+// A simple script to handle UI interactions and API calls for the symptom tracker app.
 
-    // Show/hide custom date fields based on radio button selection
-    dateOptionRadios.forEach(radio => {
-        radio.addEventListener('change', (event) => {
-            if (event.target.value === 'custom') {
-                customDateFields.classList.remove('hidden');
-            } else {
-                customDateFields.classList.add('hidden');
-            }
-        });
+document.addEventListener('DOMContentLoaded', () => {
+    // Get all necessary DOM elements
+    const addRecordForm = document.getElementById('add-record-form');
+    const dateTypeSelect = document.getElementById('date-type');
+    const customDateFields = document.getElementById('custom-date-fields');
+    const viewRecordsButton = document.getElementById('view-records');
+    const deleteAllRecordsButton = document.getElementById('delete-all-records');
+    const recordsTableContainer = document.getElementById('records-table-container');
+    const recordsPlaceholder = document.getElementById('records-placeholder');
+    const addStatusSpan = document.getElementById('add-status');
+
+    // Show/hide custom date input based on dropdown selection
+    dateTypeSelect.addEventListener('change', (event) => {
+        if (event.target.value === 'custom') {
+            customDateFields.classList.remove('hidden');
+        } else {
+            customDateFields.classList.add('hidden');
+        }
     });
 
-    // Helper function to show a temporary status message
-    function showStatus(message, isError = false) {
-        statusMessage.textContent = message;
-        statusMessage.className = `mt-4 text-center text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
-        setTimeout(() => {
-            statusMessage.textContent = '';
-        }, 5000);
-    }
-
-    // Function to fetch and render records from the server
-    async function fetchAndRenderRecords() {
-        try {
-            const response = await fetch('/api/records');
-            if (!response.ok) {
-                throw new Error('Failed to fetch records.');
-            }
-            const data = await response.json();
-            const records = data;
-
-            // Clear existing table body
-            recordsTableBody.innerHTML = '';
-
-            if (records.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="4" class="text-center py-4 text-gray-500">No records found.</td>`;
-                recordsTableBody.appendChild(row);
-                return;
-            }
-
-            // Create a set of all unique keys to build a full header
-            const allKeys = new Set();
-            records.forEach(record => {
-                Object.keys(record).forEach(key => allKeys.add(key));
-            });
-
-            // Rebuild the table header dynamically
-            const tableHead = document.querySelector('#recordsTable thead tr');
-            tableHead.innerHTML = `
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Index</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            `;
-            const dynamicKeys = Array.from(allKeys).filter(key => key !== 'name' && key !== 'date' && key !== 'index');
-            dynamicKeys.sort(); // Sort dynamically added columns alphabetically
-            dynamicKeys.forEach(key => {
-                const th = document.createElement('th');
-                th.className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
-                th.textContent = key.charAt(0).toUpperCase() + key.slice(1);
-                tableHead.insertBefore(th, tableHead.lastElementChild);
-            });
-
-            const actionsTh = document.createElement('th');
-            actionsTh.className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
-            actionsTh.textContent = "Actions";
-            tableHead.appendChild(actionsTh);
-
-            // Render each record as a table row
-            records.forEach((record, index) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 transition-colors duration-200';
-
-                // Add index and static columns
-                let rowHtml = `
-                    <td data-label="Index" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index}</td>
-                    <td data-label="Name" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.name}</td>
-                    <td data-label="Date" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(record.date).toLocaleString()}</td>
-                `;
-
-                // Add dynamic columns
-                dynamicKeys.forEach(key => {
-                    const value = record[key] === true ? 'Yes' : 'No';
-                    rowHtml += `<td data-label="${key.charAt(0).toUpperCase() + key.slice(1)}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${value}</td>`;
-                });
-
-                // Add actions button
-                rowHtml += `
-                    <td data-label="Actions" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button class="remove-btn text-red-600 hover:text-red-900" data-index="${index}">Remove</button>
-                    </td>
-                `;
-
-                row.innerHTML = rowHtml;
-                recordsTableBody.appendChild(row);
-            });
-        } catch (error) {
-            console.error('Error:', error);
-            showStatus('Failed to load records. Please try again.', true);
-        }
-    }
-
-    // Add event listener for form submission
+    // Handle form submission for adding a new record
     addRecordForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const name = patientNameInput.value;
-        const dateOption = document.querySelector('input[name="dateOption"]:checked').value;
-        let recordDate;
+        // Collect data from the form
+        const name = document.getElementById('name').value;
+        const dateType = document.getElementById('date-type').value;
+        const customDate = document.getElementById('custom-date').value;
+        const symptoms = document.getElementById('symptoms').value.split(',').map(s => s.trim()).filter(s => s !== '');
+        const hazards = document.getElementById('hazards').value.split(',').map(h => h.trim()).filter(h => h !== '');
 
-        if (dateOption === 'current') {
-            recordDate = new Date().toISOString();
+        let date;
+        if (dateType === 'current') {
+            date = new Date().toISOString();
         } else {
-            const year = yearInput.value;
-            const month = monthInput.value;
-            const day = dayInput.value;
-            const hour = hourInput.value || 0;
-            const minute = minuteInput.value || 0;
-            const second = secondInput.value || 0;
-
-            try {
-                recordDate = new Date(year, month - 1, day, hour, minute, second).toISOString();
-            } catch (e) {
-                showStatus('Invalid custom date. Please check your inputs.', true);
-                return;
-            }
+            date = new Date(customDate).toISOString();
         }
 
-        const symptoms = symptomsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
-        const hazards = hazardsInput.value.split(',').map(h => h.trim()).filter(h => h.length > 0);
+        // Use URLSearchParams to build the query string for the fetch request
+        const params = new URLSearchParams();
+        params.append('name', name);
+        params.append('date', date);
+        params.append('symptoms', JSON.stringify(symptoms)); // Convert array to JSON string
+        params.append('hazards', JSON.stringify(hazards)); // Convert array to JSON string
 
         try {
-            const response = await fetch('/api/add_record', {
+            // Make the fetch call to the FastAPI endpoint
+            const response = await fetch(`/add_record?${params.toString()}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: name,
-                    date: recordDate,
-                    symptoms: symptoms,
-                    hazards: hazards
-                }),
+            });
+            if (response.ok) {
+                console.log("Record added successfully.");
+                addStatusSpan.classList.remove('hidden');
+                setTimeout(() => addStatusSpan.classList.add('hidden'), 3000);
+                addRecordForm.reset(); // Reset form fields
+                viewRecords(); // Refresh the table to show the new record
+            } else {
+                console.error("Failed to add record.");
+            }
+        } catch (error) {
+            console.error("Error adding record:", error);
+        }
+    });
+
+    // Handle the View All Records button click
+    viewRecordsButton.addEventListener('click', () => {
+        viewRecords();
+    });
+
+    // Handle the Delete All Records button click
+    deleteAllRecordsButton.addEventListener('click', async () => {
+        const confirmed = confirm("Are you sure you want to delete all records? This action cannot be undone.");
+        if (confirmed) {
+            try {
+                const response = await fetch('/delete_all_records', {
+                    method: 'POST',
+                });
+                if (response.ok) {
+                    console.log("All records deleted.");
+                    viewRecords(); // Refresh the table to show it's empty
+                } else {
+                    console.error("Failed to delete all records.");
+                }
+            } catch (error) {
+                console.error("Error deleting all records:", error);
+            }
+        }
+    });
+
+    // Function to fetch and display records
+    async function viewRecords() {
+        try {
+            // Because the view_records() function in main.py prints to the console,
+            // we will need an API endpoint to return the records to the UI.
+            // A new endpoint needs to be added to app.py. Let's assume a GET endpoint exists
+            // that returns a JSON representation of the DataFrame.
+            const response = await fetch('/view_records'); // Assume this new endpoint exists
+            if (response.ok) {
+                const records = await response.json();
+                renderRecordsTable(records);
+            } else {
+                // If the endpoint doesn't exist, we'll log an error and show a message
+                console.warn("'/view_records' endpoint not found. Cannot display records in the UI. Please add a GET endpoint in app.py that returns the dataframe data.");
+                recordsPlaceholder.textContent = "Records cannot be viewed. Please update app.py with a '/view_records' endpoint that returns JSON data.";
+                recordsTableContainer.innerHTML = ''; // Clear any old table
+            }
+        } catch (error) {
+            console.error("Error fetching records:", error);
+        }
+    }
+
+    // Function to dynamically create and populate the records table
+    function renderRecordsTable(records) {
+        if (!records || records.length === 0) {
+            recordsPlaceholder.textContent = "No records to display.";
+            recordsTableContainer.innerHTML = '';
+            return;
+        }
+
+        recordsPlaceholder.classList.add('hidden');
+        let tableHTML = `<table class="records-table w-full border-collapse"><thead><tr><th>Index</th><th>Name</th><th>Date</th>`;
+
+        // Dynamically add symptom and hazard columns
+        const allKeys = new Set();
+        records.forEach(record => {
+            Object.keys(record).forEach(key => allKeys.add(key));
+        });
+
+        const excludedKeys = new Set(['name', 'date', 'index']);
+        const dynamicHeaders = Array.from(allKeys).filter(key => !excludedKeys.has(key)).sort();
+        dynamicHeaders.forEach(key => {
+            tableHTML += `<th>${key.charAt(0).toUpperCase() + key.slice(1)}</th>`;
+        });
+
+        tableHTML += `<th>Actions</th></tr></thead><tbody>`;
+
+        // Populate table rows
+        records.forEach((record, index) => {
+            tableHTML += `<tr class="hover:bg-gray-50"><td>${index}</td><td>${record.name}</td><td>${new Date(record.date).toLocaleString()}</td>`;
+
+            dynamicHeaders.forEach(key => {
+                const cellValue = record[key] ? '✅' : '❌';
+                tableHTML += `<td>${cellValue}</td>`;
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to add record.');
-            }
+            tableHTML += `<td><button class="remove-record-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" data-index="${index}">Remove</button></td></tr>`;
+        });
 
-            // Clear the form and update the table
-            addRecordForm.reset();
-            fetchAndRenderRecords();
-            showStatus('Record added successfully!');
-        } catch (error) {
-            console.error('Error:', error);
-            showStatus(error.message, true);
-        }
-    });
+        tableHTML += `</tbody></table>`;
+        recordsTableContainer.innerHTML = tableHTML;
 
-    // Event listener for view records button
-    viewRecordsBtn.addEventListener('click', () => {
-        fetchAndRenderRecords();
-    });
-
-    // Event listener for remove button (delegated to the table body)
-    recordsTableBody.addEventListener('click', async (event) => {
-        if (event.target.classList.contains('remove-btn')) {
-            const index = event.target.dataset.index;
-            try {
-                const response = await fetch('/api/remove_record', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ index: parseInt(index) }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to remove record.');
+        // Add event listeners to dynamically created 'Remove' buttons
+        document.querySelectorAll('.remove-record-btn').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const index = event.target.dataset.index;
+                try {
+                    const response = await fetch(`/remove_record?idx=${index}`, {
+                        method: 'POST',
+                    });
+                    if (response.ok) {
+                        console.log(`Record at index ${index} removed.`);
+                        viewRecords(); // Refresh the table
+                    } else {
+                        console.error(`Failed to remove record at index ${index}.`);
+                    }
+                } catch (error) {
+                    console.error("Error removing record:", error);
                 }
+            });
+        });
+    }
 
-                fetchAndRenderRecords();
-                showStatus('Record removed successfully!');
-            } catch (error) {
-                console.error('Error:', error);
-                showStatus('Failed to remove record.', true);
-            }
-        }
-    });
-
-    // Event listener for delete all button
-    deleteAllBtn.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to delete all records? This cannot be undone.')) {
-            try {
-                const response = await fetch('/api/delete_all_records', {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete all records.');
-                }
-
-                fetchAndRenderRecords();
-                showStatus('All records have been deleted!');
-            } catch (error) {
-                console.error('Error:', error);
-                showStatus('Failed to delete all records.', true);
-            }
-        }
-    });
-
-    // Initial load of records when the page loads
-    fetchAndRenderRecords();
+    // Initial load: view records to show current state
+    viewRecords();
 });
