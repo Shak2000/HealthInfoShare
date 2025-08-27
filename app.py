@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -99,6 +99,19 @@ db = Database()
 
 # --- API Endpoints ---
 
+@app.on_event("startup")
+async def startup_event():
+    """Adds a dummy record on startup for demonstration."""
+    print("Adding a dummy record on application startup.")
+    # Add a dummy record for initial display
+    db.add_record(
+        name="John Doe",
+        date=datetime.now(),
+        symptoms=["cough", "fever"],
+        hazards=["flu season"]
+    )
+
+
 @app.get("/api/records")
 async def get_records_endpoint():
     """Endpoint to get all records."""
@@ -109,7 +122,11 @@ async def get_records_endpoint():
 @app.post("/api/add_record")
 async def add_record_endpoint(request: Request):
     """Endpoint to add a new record."""
-    data = await request.json()
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        return JSONResponse(content={"error": "Invalid JSON format."}, status_code=400)
+
     name = data.get('name')
     date_str = data.get('date')
     symptoms = data.get('symptoms', [])
@@ -120,7 +137,11 @@ async def add_record_endpoint(request: Request):
 
     try:
         record_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-        if record_date > datetime.now() + timedelta(minutes=1):
+        # Convert the aware datetime to a naive UTC datetime for comparison
+        record_date_naive = record_date.astimezone(timezone.utc).replace(tzinfo=None)
+
+        # Compare with a naive UTC now
+        if record_date_naive > datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=1):
             return JSONResponse(content={"error": "Cannot enter a future date."}, status_code=400)
     except ValueError:
         return JSONResponse(content={"error": "Invalid date format."}, status_code=400)
@@ -132,8 +153,11 @@ async def add_record_endpoint(request: Request):
 @app.post("/api/remove_record")
 async def remove_record_endpoint(request: Request):
     """Endpoint to remove a record."""
-    data = await request.json()
-    idx = data.get('index')
+    try:
+        data = await request.json()
+        idx = data.get('index')
+    except json.JSONDecodeError:
+        return JSONResponse(content={"error": "Invalid JSON format."}, status_code=400)
 
     if idx is None:
         return JSONResponse(content={"error": "Index is required."}, status_code=400)
